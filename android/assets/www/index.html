@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta charset="utf-8">   
+		
+		<meta name="viewport" content="width=device-width, initial-scale=1"> 
+		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.1.0-rc.2/jquery.mobile-1.1.0-rc.2.min.css" />
+		<script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+		<script src="http://code.jquery.com/mobile/1.1.0-rc.2/jquery.mobile-1.1.0-rc.2.min.js"></script>
+		<script type="text/javascript" charset="utf-8" src="cordova-1.5.0.js"></script>
+        <script type="text/javascript" charset="utf-8" src="tsg.js"></script>
+            </head>
+    
+    <body onload="onBodyLoad()">
+        
+        <div data-role="page" id="loginPage">
+            
+            <div data-role="header">
+                <h1>Login</h1>
+            </div><!-- /header -->
+            
+            <div data-role="content">	
+                <p id="prompt">Enter your username and password:</p>
+                <form method="get" id="loginForm">
+                    <div data-role="fieldcontain" class="ui-hide-label">
+                        <label for="username">Username:</label>
+                        <input type="text" name="username" id="username" value="" placeholder="Username"/>
+                        <label for="password">Password:</label>
+                        <input type="password" name="password" id="password" value="" placeholder="Password"/>
+                    </div>
+                    <button type="submit" name="submit" value="login">submit</button>
+                </form> 
+                <p>Not registered yet? Sign up <a href="#">here</a>.</p>
+            </div><!-- /content -->
+            
+            <div data-role="footer" data-position="fixed">
+
+            </div><!-- /footer -->
+            
+        </div><!-- /page -->
+        
+        <div data-role="page" id="mainPage">
+            
+            <div data-role="header">
+                <h1>Main Menu</h1>
+                <a href="#" data-role="button" id="logoutBtn">Logout</a>
+            </div><!-- /header -->
+            
+            <div data-role="content">
+                <p>You have no new messages.</p>
+                <ul data-role="listview">
+                    <li><a href="#menuPage?action=plant">Plant a Sound</a></li>
+                    <li><a href="#menuPage?action=prune">Prune a Sound</a></li>
+                    <li><a href="#menuPage?action=messages">View Messages</a></li>
+                </ul>
+                
+            </div><!-- /content -->
+            
+            <div data-role="footer" data-position="fixed">
+               
+            </div><!-- /footer -->
+        </div><!-- /page -->
+        
+        <div data-role="page" id="menuPage" data-add-back-btn="true">
+            
+            <div data-role="header">
+                <h1>Page Title</h1>
+            </div><!-- /header -->
+            
+            <div data-role="content">	
+                <ul data-role="listview">
+                    <li><a href="#paramsPage">Sound 1</a></li>
+                    <li><a href="#">Sound 2</a></li>
+                    <li><a href="#">Sound 3</a></li>
+                    <li><a href="#">Sound 4</a></li>
+                </ul>	
+            </div><!-- /content -->
+            
+            <div data-role="footer" data-position="fixed">
+
+            </div><!-- /footer -->
+        </div><!-- /page -->
+        
+        <div data-role="page" id="paramsPage" data-add-back-btn="true">
+            
+            <div data-role="header">
+                <h1>Page Title</h1>
+            </div><!-- /header -->
+            
+            <div data-role="content">
+            </div><!-- /content -->
+            
+            <div data-role="footer" data-position="fixed">
+            </div><!-- /footer -->
+            
+        </div><!-- /page -->
+        
+        <div data-role="page" id="messagePage" data-add-back-btn="true">
+            
+            <div data-role="header">
+                <h1>Page Title</h1>
+            </div><!-- /header -->
+            
+            <div data-role="content">	
+                <form action="#" method="post">
+                    <div data-role="fieldcontain">
+                        <label for="sender">From:</label>
+                        <input type="text" name="sender" id="sender" value=""/>
+                        <label for="textarea">Message:</label>
+                        <textarea name="textarea" id="message"></textarea>
+                    </div>
+                </form>
+                <button data-role="button" id="messageSubmitBtn">submit</button>
+                
+            </div><!-- /content -->
+            
+            <div data-role="footer" data-position="fixed">
+
+            </div><!-- /footer -->
+        </div><!-- /page -->
+        
+    </body>
+</html>
