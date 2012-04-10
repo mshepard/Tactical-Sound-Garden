@@ -316,7 +316,7 @@ function onBodyLoad()
                     // INITIALIZE GARDEN
                     
                     function initGarden() {
-                        updateLocation();
+                        startLocationService();
                         $('#prompt').html('Getting garden sounds....');
                         $.get(GetGardenSoundsURL, {gardenID:1}, function(data){
                               if (data.success) {
@@ -330,15 +330,15 @@ function onBodyLoad()
                     
                     // LOCATION
                     
-                    function updateLocation() {
-                        navigator.geolocation.getCurrentPosition(function(position){
+                    function startLocationService() {
+                        navigator.geolocation.watchPosition(function(position){
                                                                     currentPosition = position;
                                                                     lat = position.coords.latitude;
                                                                     lon = position.coords.longitude;
                                                                     console.log(position);
                                                                  }, function(error) {
                                                                     console.log("code: " + error.code + "\n" + "message: " + error.message + "\n");
-                                                                 });
+                                                                 }, { frequency: 3000, enableHighAccuracy: true });
                     }
                 }
 //  DATABASE FUNCTIONS
