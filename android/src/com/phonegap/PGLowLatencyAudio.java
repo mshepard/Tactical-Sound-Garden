@@ -101,7 +101,7 @@ public class PGLowLatencyAudio extends Plugin {
 					if(assetPath.startsWith("http://")) {
 
 						//afd=new AssetFileDescriptor();
-						Log.d("sepans", "uri");
+						//Log.d("sepans", "uri");
 						Uri uri = Uri.parse(assetPath);
 						//ctx.getBaseContext()
 						PGLowLatencyAudioAsset asset = new PGLowLatencyAudioAsset( ctx.getBaseContext(),uri , voices);
