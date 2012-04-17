@@ -27,7 +27,7 @@ function onDeviceReady()
     var activeSounds = new Array();
     var messages = new Array();
     
-    var maxSounds = 6;
+    var maxSounds = 4;
 
     var soundCutoffDistance = 100;
     
@@ -47,9 +47,6 @@ function onDeviceReady()
         sound.soundLon = null;
         sound.soundVolume = .5;
         sound.soundInterval = "Loop";
-        sound.soundMinDistance = soundMinDistance;
-        sound.soundMaxDistance = soundMaxDistance;
-        sound.soundPlayDate = null;
         librarySounds.push(sound);
     }
     
@@ -191,8 +188,14 @@ function onDeviceReady()
                 markup += "<li><a href=\"#paramsPage?plant="+i+"\">" + librarySounds[i].soundName + "</a></li>";
             }
             markup += "</ul>";
-            $header.find( "h1" ).html( "Pick a Sound" );
+            $header.find( "h1" ).html( "Plant a Sound" );
             
+        } else if (url.hash.search("prune") != -1) {
+            for (var i=0; i < activeSounds.length; i++) {
+                markup += "<li><a href=\"#paramsPage?prune="+i+"\">" + activeSounds[i].soundName + "</a></li>";
+            }
+            markup += "</ul>";
+            $header.find( "h1" ).html( "Prune a Sound" );
         } else if (url.hash.search("messages") != -1) {
             for ( var i = 0; i < messages.length; i++ ) {
                 markup += "<li><a href=\"#messagePage?view="+i+"\">re: " + messages[i].soundName + "</a></li>";
@@ -227,7 +230,6 @@ function onDeviceReady()
             $header.find( "h1" ).html( "Planting " + librarySounds[c].soundName );
             
             var markup = "<form method=\"get\" action=\"#\" id=\"plantForm\">" +
-            "<div data-role=\"fieldcontain\">" +
             "<input type=\"hidden\" value=\"" + c + "\" id=\"cItem\" name=\"cItem\" />" +
             "<label for=\"sname\">Sound name:</label>" +
                 "<input type=\"text\" name=\"sname\" id=\"sname\" />" +
@@ -240,16 +242,42 @@ function onDeviceReady()
                     markup += "<option value=\"" + soundIntervals[key] + "\">" + key + "</option>";
                 }
             
-            markup += "</select></div><button type=\"submit\" value=\"plant\">submit</button></form>";
+            markup += "</select><button type=\"submit\" value=\"plant\">submit</button></form>";
         }
         
         if (url.hash.search("prune") != -1) {
-            // similar to above
+            
+            var t = url.hash.split("=");
+            var c = t[1]; // id of current sound
+            
+            $header.find( "h1" ).html( "Pruning " + activeSounds[c].soundName );
+            
+            var markup = "<form method=\"get\" action=\"#\" id=\"pruneForm\">" +
+            "<input type=\"hidden\" value=\"" + c + "\" id=\"cItem\" name=\"cItem\" />" +
+            "<label for=\"sname\">Sound name:</label>" +
+                "<input type=\"text\" name=\"sname\" id=\"sname\" value=\"" + activeSounds[c].soundName + "\" />" +
+                "<label for=\"svolume\">Volume:</label>" +
+                "<input type=\"range\" name=\"svolume\" id=\"svolume\" value=\"" + activeSounds[c].soundVolume + "\" min=\"0\" max=\"100\"  />" +
+                "<label for=\"sinterval\" class=\"select\">Interval:</label>" +
+                "<select name=\"sinterval\" id=\"sinterval\">";
+            
+                for (key in soundIntervals) {
+                    if (soundIntervals[key] == activeSounds[c].soundInterval) {
+                        markup += "<option value=\"" + soundIntervals[key] + " selected=\"selected\" \">" + key + "</option>";
+                    } else {
+                        markup += "<option value=\"" + soundIntervals[key] + "\">" + key + "</option>";
+                    }
+                }
+            
+            markup += "</select><button type=\"submit\" value=\"prune\">submit</button></form>";
         }
         
         $content.html( markup );
-
         $page.page();
+        $content.find( "input[type='range']" ).slider();  
+        $content.find( "input[type='text']" ).textinput();
+        $content.find( "select" ).selectmenu();
+        $content.find( "[type='submit']" ).button(); 
         
         options.dataUrl = url.href;
         $.mobile.changePage( $page, options );
@@ -325,6 +353,11 @@ function onDeviceReady()
               if (data.success) {
               gardenSounds = data.gardenSounds;
               librarySounds = data.librarySounds;
+              // temp 
+              for (var i=0; i< maxSounds; i++) {
+                activeSounds[i] = gardenSounds[i];
+              }
+              //
               $.mobile.changePage( "#mainPage", { transition: "slide"} );
               } else {
               alert("Failed to load sounds!");
