@@ -54,7 +54,7 @@ function onDeviceReady()
     
     var soundIntervals = { "loop":0,"once only":-1,"every 10 seconds":10000,"every 30 seconds":30000,"every minute":60000,"every 5 minutes":300000,"every 30 minutes":1800000,"every hour":3600000 };
                           
-    var currentPosition = new Object();
+    var currentPosition; //= new Object();
     var lat;
     var lon;
 
@@ -368,17 +368,108 @@ function onDeviceReady()
     // LOCATION
 
     function startLocationService() {
-        navigator.geolocation.watchPosition(function(position){
-                                                    currentPosition = position;
-                                                    lat = position.coords.latitude;
-                                                    lon = position.coords.longitude;
-                                                    console.log(position);
-                                                 }, function(error) {
+        navigator.geolocation.watchPosition(handleLocation, function(error) {
                                                     console.log("code: " + error.code + "\n" + "message: " + error.message + "\n");
                                                  }, { frequency: 3000, enableHighAccuracy: true });
     }
 
     //  DATABASE FUNCTIONS
+    
+    function handleLocation(position) {
+    	
+    	  //console.log('#### watching location');
+		  currentPosition = position;
+          lat = position.coords.latitude;
+          lon = position.coords.longitude;
+          //console.log(lat+' '+lon);
+          //console.log(gardenSounds);
+          
+          if(gardenSounds!=null && gardenSounds.length>0) {
+        	  for(var i=0;i<gardenSounds.length;i++) {
+        		  var sound = gardenSounds[i];
+        		  //console.log(sound.soundFileURI);
+        		  var soundLable = sound.soundName + sound.soundID;
+        		  if(!isNaN(sound.soundLat) && !isNaN(sound.soundLon)) {
+        		  	var distance = calculateDistance(lat, lon, sound.soundLat, sound.soundLon);
+        		  	console.log(distance);
+        		  	if(distance<100000000) {
+        		  		PGLowLatencyAudio.preloadAudio(soundLable, 'http://'+sound.soundFileURI,3,
+        				 // function(status) {
+        			  			
+        			  			soundLoaded(soundLable,sound,distance)
+        			  	
+        		  		//}
+        			  	, function() {console.log('loading failed ');});
+                 // setTimeout( function() {PGLowLatencyAudio.play('cymbal');}, 5000+500*i );
+        	    }
+        	   }
+        	  }
+          }
+    }
+    var soundLoaded = function(soundLable,sound,distance) {
+    	return function(status) {
+    		
+    		var volume = (100-distance)/100;
+    		console.log(volume);
+    		PGLowLatencyAudio.changeVolume(soundLable,volume);
+
+			console.log(soundLable);
+    		console.log(sound.soundInterval);
+
+    		switch (sound.soundInterval) {
+    		case 0 :
+    			console.log('0');
+    			PGLowLatencyAudio.loop(soundLable);
+    			break;
+    		case -1 :
+    			console.log('-1');
+    			PGLowLatencyAudio.play(soundLable);
+    			break;
+    		default :
+    			//PGLowLatencyAudio.play(soundLable);
+    			console.log('interval '+sound.soundInterval);
+    			var interval = !isNaN(sound.soundInterval) ? sound.soundInterval : 6000;
+    			console.log('corrected interval '+interval);
+    			for(var i=0;i<2;i++) {
+    				setTimeout(function() {
+    					console.log('label '+soundLable+' in '+i*interval+' seconds');
+    					PGLowLatencyAudio.play(soundLable); 
+    					},interval*i);
+    			}
+    			//sound.myInterval = setInterval(function () {
+    		    //                                     PGLowLatencyAudio.play(soundLable)
+    		    //                                     });
+    			break;
+    		} 
+    		//console.log(status);
+			//console.log(soundLable);
+			//PGLowLatencyAudio.play(soundLable);
+			//console.log(element);
+    	};
+    };
+    
+    function calculateDistance(lat1, lon1, lat2, lon2, unit)
+    {
+            var radlat1 = Math.PI * lat1/180
+            var radlat2 = Math.PI * lat2/180
+            var radlon1 = Math.PI * lon1/180
+            var radlon2 = Math.PI * lon2/180
+            var theta = lon1-lon2
+            var radtheta = Math.PI * theta/180
+
+            var dist = Math.sin(radlat1) *
+            Math.sin(radlat2) +
+            Math.cos(radlat1) *
+            Math.cos(radlat2) *
+            Math.cos(radtheta);
+
+            dist = Math.acos(dist)
+            dist = dist * 180/Math.PI
+            dist = dist * 60 * 1.1515
+            if (unit=="K") { dist = dist * 1.609344 }
+            if (unit=="N") { dist = dist * 0.8684 }
+            return dist
+    } 
 
     function getMessages(username) {
         $.get(GetMessagesURL, {username:username}, function(data){
