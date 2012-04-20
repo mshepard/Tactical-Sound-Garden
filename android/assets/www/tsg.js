@@ -24,10 +24,10 @@ function onDeviceReady()
     
     var gardenSounds = new Array();
     var librarySounds = new Array();
-    var activeSounds = new Array();
+    var activeSounds = new Object();//new Array();
     var messages = new Array();
     
-    var maxSounds = 4;
+    var maxSounds = 10;
 
     var soundCutoffDistance = 100;
     
@@ -354,9 +354,18 @@ function onDeviceReady()
               gardenSounds = data.gardenSounds;
               librarySounds = data.librarySounds;
               // temp 
-              for (var i=0; i< maxSounds; i++) {
-                activeSounds[i] = gardenSounds[i];
-              }
+             // for (var i=0; i< maxSounds; i++) {
+             //   activeSounds[i] = gardenSounds[i];
+             // }
+          	var lat = 37.42200;
+        	var lon = -122.084095;
+
+              mockupLocationService(lat,lon);
+              setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.0006);},50000);
+              setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.001);},70000);
+              setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.002);},90000);
+              //console.log('############################# done');
+              setTimeout(function() {stopActiveSounds();}, 180000);
               //
               $.mobile.changePage( "#mainPage", { transition: "slide"} );
               } else {
@@ -372,49 +381,110 @@ function onDeviceReady()
                                                     console.log("code: " + error.code + "\n" + "message: " + error.message + "\n");
                                                  }, { frequency: 3000, enableHighAccuracy: true });
     }
+    
+    function mockupLocationService(lat, lon) {
+    	var position = {coords: {latitude: lat, longitude: lon}};
+    	handleLocation(position);
+    }
 
     //  DATABASE FUNCTIONS
     
     function handleLocation(position) {
     	
-    	  //console.log('#### watching location');
-		  currentPosition = position;
+ 		  currentPosition = position;
           lat = position.coords.latitude;
           lon = position.coords.longitude;
-          //console.log(lat+' '+lon);
-          //console.log(gardenSounds);
+ 
+          console.log(lat+' '+lon);
+          startSoundGarden(position);
           
-          if(gardenSounds!=null && gardenSounds.length>0) {
-        	  for(var i=0;i<gardenSounds.length;i++) {
-        		  var sound = gardenSounds[i];
-        		  //console.log(sound.soundFileURI);
-        		  var soundLable = sound.soundName + sound.soundID;
-        		  if(!isNaN(sound.soundLat) && !isNaN(sound.soundLon)) {
-        		  	var distance = calculateDistance(lat, lon, sound.soundLat, sound.soundLon);
-        		  	console.log(distance);
-        		  	if(distance<100000000) {
-        		  		PGLowLatencyAudio.preloadAudio(soundLable, 'http://'+sound.soundFileURI,3,
-        				 // function(status) {
-        			  			
-        			  			soundLoaded(soundLable,sound,distance)
-        			  	
-        		  		//}
-        			  	, function() {console.log('loading failed ');});
-                 // setTimeout( function() {PGLowLatencyAudio.play('cymbal');}, 5000+500*i );
-        	    }
-        	   }
-        	  }
-          }
+
     }
-    var soundLoaded = function(soundLable,sound,distance) {
+ 
+    /*
+     *  iterates over sounds in sound gardern. If it is not loaded, loads it first and then plays it
+     *  if it is already loaded or being played, just sets the volume etc.
+     */
+    
+    function startSoundGarden(postition) {
+    	
+        if(gardenSounds!=null && gardenSounds.length>0) {
+          console.log(gardenSounds);
+          console.log(gardenSounds[1].soundID);
+      	  //for(sound in gardenSounds) {
+          for(var i =0;i<gardenSounds.length;i++) {
+        	  var sound = gardenSounds[i];
+      		 // console.log(sound.soundFileURI);
+      		  var soundLable = 'instance'+sound.instanceID;
+      		  console.log(i+' '+sound.soundID+' '+sound.soundFileURI+' '+soundLable);
+      		  if(soundLable && !isNaN(sound.soundLat) && !isNaN(sound.soundLon)) {
+      		  	var distance = calculateDistance(lat, lon, sound.soundLat, sound.soundLon,"K");
+      		  	console.log('-------------------------');
+      		  	console.log('distance '+ distance);
+      		  	if(distance<soundCutoffDistance) { // it is based on db order. sounds need to be sorted based on distance first
+       		  		console.log(soundLable+' active sounds within distance '+activeSounds[soundLable]+' new sound? '+(activeSounds[soundLable]==null));
+      		  		if(activeSounds[soundLable]==null ) {  // sound is not loaded
+      		  				console.log('loading '+soundLable);
+	        		  		PGLowLatencyAudio.preloadAudio(soundLable, 'http://'+sound.soundFileURI,3,
+	        		  				activeSoundLoaded(soundLable,sound,distance)
+	        			  	, function() {console.log('loading failed ');});
+      		  		}
+      		  		else { // sound is already loaded 
+      		  				// either the interval is set or sound is already playing... nothing to do?!
+      		  				// except setting the volume 
+      		    		var volume = (soundCutoffDistance-distance)/soundCutoffDistance;
+      		    		console.log('new volume for already loaded file '+volume);
+      		    		PGLowLatencyAudio.changeVolume(soundLable,volume);
+
+      		  		}
+               // setTimeout( function() {PGLowLatencyAudio.play('cymbal');}, 5000+500*i );
+      		  	}
+      		  	else {  // sound is not active
+       		  		console.log(soundLable+' active sounds OUT OF dis '+activeSounds[soundLable]+' is in activeSounds? '+(activeSounds[soundLable]==null));
+      		  		if(activeSounds[soundLable]==null) {  // sound is not loaded
+       		  			console.log(soundLable+' far and not loaded or soundlable in null');
+	        		  /*		PGLowLatencyAudio.preloadAudio(soundLable, 'http://'+sound.soundFileURI,1,
+	        			  			activeSoundLoaded(soundLable,sound,distance)
+	        			  	, function() {console.log('loading failed ');});*/
+      		  		}
+      		  		else { // sound is already loaded (needs to be cleared)
+      		  			console.log('clearing unloading '+soundLable);
+      		  			clearInterval(activeSounds[soundLable].myInterval);
+      		  			//console.log('before label '+soundLable+' itself '+activeSounds.soundLable.loaded+' 2 '+activeSounds.length);
+      		  			delete activeSounds[soundLable];
+      		  			//activeSounds.soundLable.loaded=false;
+      		  			//console.log('after label '+soundLable+' itself '+activeSounds.soundLable.loaded+' 2 '+activeSounds.length);
+      		    		console.log(" CHECKING after deletion size:"+activeSounds.length );
+      		    		for(var lable in activeSounds) {
+      		        		var mySound = activeSounds[lable];
+      		    			console.log(' key '+lable+' object '+mySound+' '+mySound.soundFileURI);
+      		    		}
+      		  			PGLowLatencyAudio.unload(soundLable);
+      		  			
+      		  		}
+    		  		
+      		  	}
+      	    }
+      	  }
+        }
+    }
+    var activeSoundLoaded = function(soundLable,sound,distance) {
     	return function(status) {
-    		
-    		var volume = (100-distance)/100;
-    		console.log(volume);
+    		var count = 0;
+    		console.log(" CHECKING ACTIVE SOUNDS size:"+activeSounds.length );
+    		for(var lable in activeSounds) {
+        		var mySound = activeSounds[lable];
+    			console.log(count+' key '+lable+' object '+mySound+' '+mySound.soundFileURI);
+    		}
+    		console.log('soundLable '+ soundLable + 'new url '+sound.soundFileURI);
+	  		activeSounds[soundLable] = sound;
+	  		//activeSounds.soundLable.loaded=true; 
+	  		var volume = (soundCutoffDistance-distance)/soundCutoffDistance;
+    		console.log('distance '+distance+' volume '+volume);
     		PGLowLatencyAudio.changeVolume(soundLable,volume);
 
-			console.log(soundLable);
-    		console.log(sound.soundInterval);
+			console.log(soundLable+' with interval '+sound.soundInterval);
+    		//console.log();
 
     		switch (sound.soundInterval) {
     		case 0 :
@@ -427,18 +497,16 @@ function onDeviceReady()
     			break;
     		default :
     			//PGLowLatencyAudio.play(soundLable);
-    			console.log('interval '+sound.soundInterval);
+    			//console.log('interval '+sound.soundInterval);
     			var interval = !isNaN(sound.soundInterval) ? sound.soundInterval : 6000;
     			console.log('corrected interval '+interval);
-    			for(var i=0;i<2;i++) {
-    				setTimeout(function() {
-    					console.log('label '+soundLable+' in '+i*interval+' seconds');
+				console.log('label '+soundLable+' in '+interval+' ms');
+    			sound.myInterval = setInterval(function() {
+    					//console.log('playing');
     					PGLowLatencyAudio.play(soundLable); 
-    					},interval*i);
-    			}
-    			//sound.myInterval = setInterval(function () {
-    		    //                                     PGLowLatencyAudio.play(soundLable)
-    		    //                                     });
+    					},interval);
+    			//clearInterval(sound.myInterval);
+    			//PGLowLatencyAudio.play(soundLable);
     			break;
     		} 
     		//console.log(status);
@@ -447,6 +515,35 @@ function onDeviceReady()
 			//console.log(element);
     	};
     };
+    
+    function playSound(sound) {
+  		PGLowLatencyAudio.preloadAudio(sound.soundName, 'http://'+sound.soundFileURI,1
+	  	, function() {PGLowLatencyAudio.play(sound.soundName);}
+	  	, function() {console.log('loading failed ');});
+    	
+    }
+    
+    function stopSound(sound) {
+    	PGLowLatencyAudio.stop(sound.soundName);
+    	PGLowLatencyAudio.unload(sound.soundName);
+    }
+    
+    function stopActiveSounds() {
+       	
+    	console.log('%%%%%%%%%%%%%%%%%% STOP ALL %%%%%%%%%%%%%%%%%%%%%%%%%%%');
+    	for(var lable in activeSounds) {
+    		var sound = activeSounds[lable];
+    		if(sound.myInterval) {
+    			console.log('clearing intervals '+ lable);
+    			clearInterval(sound.myInterval);
+    		}
+    		console.log('STOP');
+    		delete activeSounds[lable];
+   	    	PGLowLatencyAudio.stop('instance'+sound.instanceID);
+   	    	PGLowLatencyAudio.unload('instance'+sound.instanceID);
+    	}
+  
+    }
     
     function calculateDistance(lat1, lon1, lat2, lon2, unit)
     {
@@ -468,7 +565,7 @@ function onDeviceReady()
             dist = dist * 60 * 1.1515
             if (unit=="K") { dist = dist * 1.609344 }
             if (unit=="N") { dist = dist * 0.8684 }
-            return dist
+            return dist*1000;
     } 
 
     function getMessages(username) {
