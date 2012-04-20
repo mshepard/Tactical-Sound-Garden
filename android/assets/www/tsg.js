@@ -31,27 +31,6 @@ function onDeviceReady()
 
     var soundCutoffDistance = 100;
     
-    /*
-    
-    var librarySoundFiles = new Array("palme.mp3", "woody.mp3", "gotagua.mp3", "timi.mp3", "passaro.mp3", "pulsos.mp3", "bosaa.mp3", "submersive.mp3", "yulatupe.mp3", "huffs.mp3", "sonya.mp3", "baybee.mp3");
-    
-    for (i=0; i<librarySoundFiles.length; i++) {
-        var sound = new Object();
-        sound.soundID = null;
-        sound.soundOwner = null;
-        var temp = librarySoundFiles[i].split(".");
-        sound.soundName = temp[0];
-        sound.soundFileName = librarySoundFiles[i];
-        sound.soundFileURI = null;
-        sound.soundLat = null;
-        sound.soundLon = null;
-        sound.soundVolume = .5;
-        sound.soundInterval = "Loop";
-        librarySounds.push(sound);
-    }
-    
-    */
-    
     var soundIntervals = { "loop":0,"once only":-1,"every 10 seconds":10000,"every 30 seconds":30000,"every minute":60000,"every 5 minutes":300000,"every 30 minutes":1800000,"every hour":3600000 };
                           
     var currentPosition; //= new Object();
@@ -243,9 +222,7 @@ function onDeviceReady()
                 }
             
             markup += "</select><button type=\"submit\" value=\"plant\">submit</button></form>";
-        }
-        
-        if (url.hash.search("prune") != -1) {
+        } else if (url.hash.search("prune") != -1) {
             
             var t = url.hash.split("=");
             var c = t[1]; // id of current sound
@@ -255,7 +232,7 @@ function onDeviceReady()
             var markup = "<form method=\"get\" action=\"#\" id=\"pruneForm\">" +
             "<input type=\"hidden\" value=\"" + c + "\" id=\"cItem\" name=\"cItem\" />" +
             "<label for=\"sname\">Sound name:</label>" +
-                "<input type=\"text\" name=\"sname\" id=\"sname\" value=\"" + activeSounds[c].soundName + "\" />" +
+                "<input type=\"text\" name=\"sname\" id=\"sname\" disabled=\"\" value=\"" + activeSounds[c].soundName + "\" />" +
                 "<label for=\"svolume\">Volume:</label>" +
                 "<input type=\"range\" name=\"svolume\" id=\"svolume\" value=\"" + activeSounds[c].soundVolume + "\" min=\"0\" max=\"100\"  />" +
                 "<label for=\"sinterval\" class=\"select\">Interval:</label>" +
@@ -263,13 +240,16 @@ function onDeviceReady()
             
                 for (key in soundIntervals) {
                     if (soundIntervals[key] == activeSounds[c].soundInterval) {
-                        markup += "<option value=\"" + soundIntervals[key] + " selected=\"selected\" \">" + key + "</option>";
+                        markup += "<option value=\"" + soundIntervals[key] + "\" selected=\"selected\" \">" + key + "</option>";
                     } else {
                         markup += "<option value=\"" + soundIntervals[key] + "\">" + key + "</option>";
                     }
                 }
             
-            markup += "</select><button type=\"submit\" value=\"prune\">submit</button></form>";
+            markup += "</select>"+
+                        "<label for=\"message\">Message:</label>"+
+                        "<textarea name=\"messageBody\" id=\"messageBody\"></textarea>"+
+                        "<button type=\"submit\" value=\"prune\">submit</button></form>";
         }
         
         $content.html( markup );
@@ -282,9 +262,10 @@ function onDeviceReady()
         options.dataUrl = url.href;
         $.mobile.changePage( $page, options );
         
-        $('#plantForm').submit(function() {
+        if (url.hash.search("plant") != -1) {
+            $('#plantForm').submit(function() {
                                var c = $('#cItem').val();
-                               console.log("planting soundID: " + librarySounds[c].soundID);
+                               console.log("planting " + $('#sname').val() + ", soundID: " + librarySounds[c].soundID);
                                 $.get(PlantSoundURL,{
                                     soundID:librarySounds[c].soundID,
                                     soundOwner:myUsername,
@@ -298,15 +279,43 @@ function onDeviceReady()
                                     }, function(data) {
                                         console.log(data);
                                         if(data.success) {
-                                            console.log("plant successful - soundID: "+data.soundID);
+                                            console.log("plant successful - instanceID: "+data.instanceID);
                                             $.mobile.changePage( "#mainPage", { transition: "slide", reverse: true } );
                                         } else {
+                                            console.log("planting failed");
                                             $.mobile.changePage( "#mainPage", { transition: "slide", reverse: true } );
                                         }
                                      },'json');
                                
                                return false;
                                });
+        } else if (url.hash.search("prune") != -1) {
+            $('#pruneForm').submit(function() {
+                               var c = $('#cItem').val();
+                               console.log("pruning instanceID: " + activeSounds[c].instanceID);
+                                $.get(PruneSoundURL,{
+                                    instanceID:activeSounds[c].instanceID,
+                                    soundID:activeSounds[c].soundID,
+                                    soundName:activeSounds[c].soundName,
+                                    soundOwner:activeSounds[c].soundOwner,
+                                    soundPruner:myUsername,
+                                    soundVolume:$('#svolume').val(),
+                                    soundInterval:$('#sinterval').val(),
+                                    messageBody:$('#messageBody').val()
+                                    }, function(data) {
+                                        console.log(data);
+                                        if(data.success) {
+                                            console.log("prune successful - instanceID: "+data.instanceID);
+                                            $.mobile.changePage( "#mainpage", { transition: "slide", reverse: true } );
+                                        } else {
+                                            console.log("pruning failed");
+                                            $.mobile.changePage( "#mainPage", { transition: "slide", reverse: true } );
+                                        }
+                                     },'json');
+                               
+                               return false;
+                               });
+        }
 
     }
 
@@ -337,11 +346,11 @@ function onDeviceReady()
             
             // Inject the category items markup into the content element.
             $content.html( markup );
-
         }
         $page.page();
         options.dataUrl = url.href;
         $.mobile.changePage( $page, options );
+
     }
 
     // INITIALIZE GARDEN
@@ -387,11 +396,11 @@ function onDeviceReady()
           if(gardenSounds!=null && gardenSounds.length>0) {
         	  for(var i=0;i<gardenSounds.length;i++) {
         		  var sound = gardenSounds[i];
-        		  //console.log(sound.soundFileURI);
+        		  console.log(sound.soundFileURI);
         		  var soundLable = sound.soundName + sound.soundID;
         		  if(!isNaN(sound.soundLat) && !isNaN(sound.soundLon)) {
         		  	var distance = calculateDistance(lat, lon, sound.soundLat, sound.soundLon);
-        		  	console.log(distance);
+        		  	console.log(sound.soundName + ": distance: " + distance);
         		  	if(distance<100000000) {
         		  		PGLowLatencyAudio.preloadAudio(soundLable, 'http://'+sound.soundFileURI,3,
         				 // function(status) {
@@ -410,7 +419,7 @@ function onDeviceReady()
     	return function(status) {
     		
     		var volume = (100-distance)/100;
-    		console.log(volume);
+    		console.log(soundLable + ":volume: " + volume);
     		PGLowLatencyAudio.changeVolume(soundLable,volume);
 
 			console.log(soundLable);
@@ -418,11 +427,11 @@ function onDeviceReady()
 
     		switch (sound.soundInterval) {
     		case 0 :
-    			console.log('0');
+    			console.log('loop');
     			PGLowLatencyAudio.loop(soundLable);
     			break;
     		case -1 :
-    			console.log('-1');
+    			console.log('play once');
     			PGLowLatencyAudio.play(soundLable);
     			break;
     		default :
