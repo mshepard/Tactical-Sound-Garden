@@ -406,30 +406,6 @@ function onDeviceReady()
  
           console.log(lat+' '+lon);
           startSoundGarden(position);
-          
-<<<<<<< HEAD
-          if(gardenSounds!=null && gardenSounds.length>0) {
-        	  for(var i=0;i<gardenSounds.length;i++) {
-        		  var sound = gardenSounds[i];
-        		  console.log(sound.soundFileURI);
-        		  var soundLable = sound.soundName + sound.soundID;
-        		  if(!isNaN(sound.soundLat) && !isNaN(sound.soundLon)) {
-        		  	var distance = calculateDistance(lat, lon, sound.soundLat, sound.soundLon);
-        		  	console.log(sound.soundName + ": distance: " + distance);
-        		  	if(distance<100000000) {
-        		  		PGLowLatencyAudio.preloadAudio(soundLable, 'http://'+sound.soundFileURI,3,
-        				 // function(status) {
-        			  			
-        			  			soundLoaded(soundLable,sound,distance)
-        			  	
-        		  		//}
-        			  	, function() {console.log('loading failed ');});
-                 // setTimeout( function() {PGLowLatencyAudio.play('cymbal');}, 5000+500*i );
-        	    }
-        	   }
-        	  }
-          }
-=======
 
     }
  
@@ -499,15 +475,13 @@ function onDeviceReady()
       	    }
       	  }
         }
->>>>>>> 36f3239525605fb8f1b4560711f7ca61fa9c5e44
     }
     var activeSoundLoaded = function(soundLable,sound,distance) {
     	return function(status) {
-<<<<<<< HEAD
-    		
+
     		var volume = (100-distance)/100;
     		console.log(soundLable + ":volume: " + volume);
-=======
+
     		var count = 0;
     		console.log(" CHECKING ACTIVE SOUNDS size:"+activeSounds.length );
     		for(var lable in activeSounds) {
@@ -519,7 +493,7 @@ function onDeviceReady()
 	  		//activeSounds.soundLable.loaded=true; 
 	  		var volume = (soundCutoffDistance-distance)/soundCutoffDistance;
     		console.log('distance '+distance+' volume '+volume);
->>>>>>> 36f3239525605fb8f1b4560711f7ca61fa9c5e44
+
     		PGLowLatencyAudio.changeVolume(soundLable,volume);
 
 			console.log(soundLable+' with interval '+sound.soundInterval);
