@@ -27,7 +27,7 @@ function onDeviceReady()
     var activeSounds = new Object();//new Array();
     var messages = new Array();
     
-    var maxSounds = 10;
+    var maxSounds = 4;
 
     var soundCutoffDistance = 100;
     
@@ -360,30 +360,60 @@ function onDeviceReady()
         $('#prompt').html('Getting sounds....');
         $.get(GetSoundsURL, {gardenID:1}, function(data){
               if (data.success) {
-              gardenSounds = data.gardenSounds;
-              librarySounds = data.librarySounds;
-              // temp 
-             // for (var i=0; i< maxSounds; i++) {
-             //   activeSounds[i] = gardenSounds[i];
-             // }
-          	var lat = 37.42200;
-        	var lon = -122.084095;
+	              gardenSounds = data.gardenSounds;
+	              
+	             // gardenSounds=sortGardenSounds();
+	              
+	              librarySounds = data.librarySounds;
 
-              mockupLocationService(lat,lon);
-              setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.0006);},50000);
-              setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.001);},70000);
-              setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.002);},90000);
-              //console.log('############################# done');
-              setTimeout(function() {stopActiveSounds();}, 180000);
-              //
-              $.mobile.changePage( "#mainPage", { transition: "slide"} );
+	              var lat = 37.42200;
+	        	  var lon = -122.084095;
+	
+	              mockupLocationService(lat,lon);
+	              setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.0006);},50000);
+	              setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.001);},70000);
+	              setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.002);},90000);
+	              //console.log('############################# done');
+	              setTimeout(function() {stopActiveSounds();}, 180000);
+	              //
+	              $.mobile.changePage( "#mainPage", { transition: "slide"} );
               } else {
-              alert("Failed to load sounds!");
+            	  alert("Failed to load sounds!");
               }
               },'json');
     }
 
     // LOCATION
+    
+    function sortGardenSounds(myPosition) {   // based on location
+
+    	if(myPosition==null)
+    		return gardenSounds;
+    	for(var indexx in gardenSounds) {
+    		var sound = gardenSounds[indexx];
+            lat = myPosition.coords.latitude;
+            lon = myPosition.coords.longitude;
+    		console.log(lat+' '+ lon+' '+  sound.soundLat+' '+  sound.soundLon);
+  		  	var distance = calculateDistance(lat, lon, sound.soundLat, sound.soundLon,"K");
+  		  	sound.distance= distance;
+    	}
+    	console.log('gardern sounds size '+gardenSounds.length);
+    	gardenSounds.sort(sortByDistance);
+    	
+    	console.log('------------ sorted sounds');
+    	for(index in gardenSounds) {
+    		var sound = gardenSounds[index];
+    		
+    		console.log(sound.distance);
+    		
+    	}
+    	return gardenSounds;
+    	
+    }
+    
+    function sortByDistance(d1, d2){
+    	return -(d1 - d2); // for desc sorting
+    }
 
     function startLocationService() {
         navigator.geolocation.watchPosition(handleLocation, function(error) {
@@ -405,6 +435,8 @@ function onDeviceReady()
           lon = position.coords.longitude;
  
           console.log(lat+' '+lon);
+          
+          
           startSoundGarden(position);
 
     }
@@ -414,19 +446,26 @@ function onDeviceReady()
      *  if it is already loaded or being played, just sets the volume etc.
      */
     
-    function startSoundGarden(postition) {
+    function startSoundGarden(position) {
     	
-        if(gardenSounds!=null && gardenSounds.length>0) {
+    	gardenSounds=sortGardenSounds(position); // first sort sounds by distnace
+
+    	
+    	if(gardenSounds!=null && gardenSounds.length>0) {
           console.log(gardenSounds);
           console.log(gardenSounds[1].soundID);
       	  //for(sound in gardenSounds) {
-          for(var i =0;i<gardenSounds.length;i++) {
+          for(var i =0;i<Math.min(gardenSounds.length,maxSounds);i++) {  //  maximum playing sounds to be maxSound
         	  var sound = gardenSounds[i];
       		 // console.log(sound.soundFileURI);
       		  var soundLable = 'instance'+sound.instanceID;
       		  console.log(i+' '+sound.soundID+' '+sound.soundFileURI+' '+soundLable);
+      		 
       		  if(soundLable && !isNaN(sound.soundLat) && !isNaN(sound.soundLon)) {
-      		  	var distance = calculateDistance(lat, lon, sound.soundLat, sound.soundLon,"K");
+      		  	
+      			 var distance = sound.distance; // calculate distance is called before.
+      		  	
+      		  	//calculateDistance(lat, lon, sound.soundLat, sound.soundLon,"K");
       		  	console.log('-------------------------');
       		  	console.log('distance '+ distance);
       		  	if(distance<soundCutoffDistance) { // it is based on db order. sounds need to be sorted based on distance first
