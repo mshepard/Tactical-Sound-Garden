@@ -367,7 +367,6 @@ function onDeviceReady()
         $('#prompt').html('Getting sounds....');
         $.get(GetSoundsURL, {gardenID:1}, function(data){
               if (data.success) {
-              
               gardenSounds = data.gardenSounds;
               librarySounds = data.librarySounds;
 /*      	
@@ -379,44 +378,13 @@ function onDeviceReady()
               setTimeout(function() {stopActiveSounds();}, 180000);
   */            
               $.mobile.changePage( "#mainPage", { transition: "slide"} );
-
               } else {
-            	  alert("Failed to load sounds!");
+              alert("Failed to load sounds!");
               }
               },'json');
     }
 
     // LOCATION
-    
-    function sortGardenSounds(myPosition) {   // based on location
-
-    	if(myPosition==null)
-    		return gardenSounds;
-    	for(var indexx in gardenSounds) {
-    		var sound = gardenSounds[indexx];
-            lat = myPosition.coords.latitude;
-            lon = myPosition.coords.longitude;
-    		console.log(lat+' '+ lon+' '+  sound.soundLat+' '+  sound.soundLon);
-  		  	var distance = calculateDistance(lat, lon, sound.soundLat, sound.soundLon,"K");
-  		  	sound.distance= distance;
-    	}
-    	console.log('gardern sounds size '+gardenSounds.length);
-    	gardenSounds.sort(sortByDistance);
-    	
-    	console.log('------------ sorted sounds');
-    	for(index in gardenSounds) {
-    		var sound = gardenSounds[index];
-    		
-    		console.log(sound.distance);
-    		
-    	}
-    	return gardenSounds;
-    	
-    }
-    
-    function sortByDistance(d1, d2){
-    	return -(d1 - d2); // for desc sorting
-    }
 
     function startLocationService() {
         navigator.geolocation.watchPosition(handleLocation, function(error) {
@@ -436,8 +404,6 @@ function onDeviceReady()
           lon = position.coords.longitude;
  
           console.log(lat+' '+lon);
-          
-          
           startSoundGarden(position);
 
     }
@@ -449,27 +415,31 @@ function onDeviceReady()
     
     function startSoundGarden(position) {
     	
-    	gardenSounds=sortGardenSounds(position); // first sort sounds by distnace
-    	
-    	if(gardenSounds!=null && gardenSounds.length>0) {
-          console.log(gardenSounds);
-          console.log(gardenSounds[1].soundID);
-
-          for(var i =0;i<Math.min(gardenSounds.length,maxSounds);i++) {  //  maximum playing sounds to be maxSound
-        	  var sound = gardenSounds[i];
-
-      		  var soundLable = 'instance'+sound.instanceID;
-      		  console.log(i+' '+sound.soundID+' '+sound.soundFileURI+' '+soundLable);
-      		 
-      		  if(soundLable && !isNaN(sound.soundLat) && !isNaN(sound.soundLon)) {
-      		  	
-      			var distance = sound.distance; // calculate distance is called before.
-      		  	
-      		  	console.log('-------------------------');
-      		  	console.log('distance '+ distance);
-      		  	
-      		  	if(distance<soundCutoffDistance) { 
-
+        if(gardenSounds!=null && gardenSounds.length>0) {
+          
+            for(var i =0;i<gardenSounds.length;i++) {
+        	  
+                var sound = gardenSounds[i];
+                sound.distance = calculateDistance(lat, lon, sound.soundLat, sound.soundLon,"K");
+                console.log('-------------------------');
+                console.log(gardenSounds[i].soundName +' distance '+ sound.distance);
+                
+            }
+            
+            gardenSounds.sort(sortfunction);
+            for (var i=0; i<gardenSounds.length; i++) {
+            	console.log(gardenSounds[i].soundName + ": distance = " + gardenSounds[i].distance);
+            }
+            
+            if (gardenSounds.length<maxSounds) { maxSounds = gardenSounds.length; }
+            
+            for (var i=0; i<gardenSounds.length; i++) {
+        
+                var sound = gardenSounds[i];
+                var soundLable = 'instance'+sound.instanceID;
+                console.log(i+' '+sound.soundID+' '+sound.soundFileURI+' '+soundLable);
+              
+      		  	if(sound.distance<soundCutoffDistance) { // 
        		  		console.log(soundLable+' active sounds within distance '+activeSounds[soundLable]+' new sound? '+(activeSounds[soundLable]==null));
       		  		if(activeSounds[soundLable]==null ) {  // sound is not loaded
                         console.log('loading '+soundLable);
@@ -510,7 +480,15 @@ function onDeviceReady()
     var activeSoundLoaded = function(soundLable,sound,distance) {
     	return function(status) {
 
-    		
+    		var volume = (100-distance)/100;
+    		console.log(soundLable + ":volume: " + volume);
+
+    		var count = 0;
+    		console.log(" CHECKING ACTIVE SOUNDS size:"+activeSounds.length );
+    		for(var lable in activeSounds) {
+        		var mySound = activeSounds[lable];
+    			console.log(count+' key '+lable+' object '+mySound+' '+mySound.soundFileURI);
+    		}
     		console.log('soundLable '+ soundLable + 'new url '+sound.soundFileURI);
 	  		activeSounds[soundLable] = sound;
 	  		//activeSounds.soundLable.loaded=true; 
@@ -603,4 +581,9 @@ function onDeviceReady()
             if (unit=="N") { dist = dist * 0.8684 }
             return dist*1000;
     }
+     
+    function sortfunction(a, b){
+        return (a - b) //causes an array to be sorted numerically and ascending
+    }
+
 }
