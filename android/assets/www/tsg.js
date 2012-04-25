@@ -21,10 +21,12 @@ function onDeviceReady()
     var GetMessagesURL = "http://www.tacticalsoundgarden.net/sandbox/client_getmessages_mobile.php";
     var SendMessageURL = "http://www.tacticalsoundgarden.net/sandbox/client_sendmessage_mobile.php";
     var GetSoundsURL = "http://www.tacticalsoundgarden.net/sandbox/client_getsounds_mobile.php";
+    var UpdateSoundsURL = "http://www.tacticalsoundgarden.net/sandbox/client_updatesounds_mobile.php";
     
     var gardenSounds = new Array();
     var librarySounds = new Array();
-    var activeSounds = new Object();//new Array();
+    var activeSounds = new Object();
+    var tempSounds = new Object();
     var messages = new Array();
     
     var maxSounds = 3;
@@ -37,6 +39,8 @@ function onDeviceReady()
     var lat = 37.42200;
     var lon = -122.084095;
     var position = {coords: {latitude: lat, longitude: lon}};
+    
+    var gardenIsActive = false;
 
     // PAGE FUNCTIONS
 
@@ -46,18 +50,18 @@ function onDeviceReady()
                            myPassword = $('[name=password]').val();
                            $.get(LoginURL,{username:myUsername,password:myPassword},
                                  function(data) {
-                                 if(data.success) {
-                                 initGarden();
-                                 } else {
-                                 $('#prompt').html(data.message);
-                                 }
+                                    if(data.success) {
+                                        initGarden();
+                                    } else {
+                                        $('#prompt').html(data.message);
+                                    }
                                  },'json');
                            
                            return false;
                            });
 
     $('#logoutBtn').bind("click", function() {
-    					stopActiveSounds();
+    					 stopActiveSounds();
                          $.get(LogoutURL,{username:myUsername} ,
                                function(data) {
                                		if(data.success) {
@@ -99,8 +103,6 @@ function onDeviceReady()
     function createMainPage(url, options) {
         
         var $page = $( "#mainPage" );
-        
-        startSoundGarden(position);
         
         // get messages
         
@@ -154,9 +156,7 @@ function onDeviceReady()
     }
 
     function createMenuPage(url, options) {
-        
-        stopActiveSounds();
-        
+                    
         var $page = $( "#menuPage" );
 
         // Get the header for the page.
@@ -232,21 +232,22 @@ function onDeviceReady()
         } else if (url.hash.search("prune") != -1) {
             
             var t = url.hash.split("=");
-            var c = t[1]; // id of current sound
-            console.log("Pruning " + c);
-            $header.find( "h1" ).html( "Pruning " + activeSounds[c].soundName );
+            var lable = t[1]; // soundLable of current sound
+            console.log("soundLable: " + lable);
+            console.log("Pruning " + activeSounds[lable].soundName);
+            $header.find( "h1" ).html( "Pruning " + activeSounds[lable].soundName );
             
             var markup = "<form method=\"get\" action=\"#\" id=\"pruneForm\">" +
-            "<input type=\"hidden\" value=\"" + c + "\" id=\"cItem\" name=\"cItem\" />" +
+            "<input type=\"hidden\" value=\"" + lable + "\" id=\"cItem\" name=\"cItem\" />" +
             "<label for=\"sname\">Sound name:</label>" +
-                "<input type=\"text\" name=\"sname\" id=\"sname\" disabled=\"\" value=\"" + activeSounds[c].soundName + "\" />" +
+                "<input type=\"text\" name=\"sname\" id=\"sname\" value=\"" + activeSounds[lable].soundName + "\" />" +
                 "<label for=\"svolume\">Volume:</label>" +
-                "<input type=\"range\" name=\"svolume\" id=\"svolume\" value=\"" + activeSounds[c].soundVolume + "\" min=\"0\" max=\"100\"  />" +
+                "<input type=\"range\" name=\"svolume\" id=\"svolume\" value=\"" + activeSounds[lable].soundVolume + "\" min=\"0\" max=\"100\"  />" +
                 "<label for=\"sinterval\" class=\"select\">Interval:</label>" +
                 "<select name=\"sinterval\" id=\"sinterval\">";
             
                 for (key in soundIntervals) {
-                    if (soundIntervals[key] == activeSounds[c].soundInterval) {
+                    if (soundIntervals[key] == activeSounds[lable].soundInterval) {
                         markup += "<option value=\"" + soundIntervals[key] + "\" selected=\"selected\" \">" + key + "</option>";
                     } else {
                         markup += "<option value=\"" + soundIntervals[key] + "\">" + key + "</option>";
@@ -287,6 +288,7 @@ function onDeviceReady()
                                         console.log(data);
                                         if(data.success) {
                                             console.log("plant successful - instanceID: "+data.instanceID);
+                                            getGardenSounds();
                                             $.mobile.changePage( "#mainPage", { transition: "slide", reverse: true } );
                                         } else {
                                             console.log("planting failed");
@@ -298,13 +300,14 @@ function onDeviceReady()
                                });
         } else if (url.hash.search("prune") != -1) {
             $('#pruneForm').submit(function() {
-                               var c = $('#cItem').val();
-                               console.log("pruning instanceID: " + activeSounds[c].instanceID);
+                               var lable = $('#cItem').val();
+                               console.log("lable: " + lable);
+                               console.log("pruning instanceID: " + activeSounds[lable].instanceID);
                                 $.get(PruneSoundURL,{
-                                    instanceID:activeSounds[c].instanceID,
-                                    soundID:activeSounds[c].soundID,
-                                    soundName:activeSounds[c].soundName,
-                                    soundOwner:activeSounds[c].soundOwner,
+                                    instanceID:activeSounds[lable].instanceID,
+                                    soundID:activeSounds[lable].soundID,
+                                    soundName:$('#sname').val(),
+                                    soundOwner:activeSounds[lable].soundOwner,
                                     soundPruner:myUsername,
                                     soundVolume:$('#svolume').val(),
                                     soundInterval:$('#sinterval').val(),
@@ -313,7 +316,17 @@ function onDeviceReady()
                                         console.log(data);
                                         if(data.success) {
                                             console.log("prune successful - instanceID: "+data.instanceID);
-                                            $.mobile.changePage( "#mainpage", { transition: "slide", reverse: true } );
+                                            var sound = activeSounds[lable];
+                                            if(sound.myInterval) {
+                                                console.log('-> clearing interval for '+ lable);
+                                                clearInterval(sound.myInterval);
+                                            }
+                                            console.log('-> deleting '+ lable);
+                                            delete activeSounds[lable];
+                                            PGLowLatencyAudio.stop('instance'+sound.instanceID);
+   	    	                                PGLowLatencyAudio.unload('instance'+sound.instanceID);
+                                            getGardenSounds();
+                                            $.mobile.changePage( "#mainPage", { transition: "slide", reverse: true } );
                                         } else {
                                             console.log("pruning failed");
                                             $.mobile.changePage( "#mainPage", { transition: "slide", reverse: true } );
@@ -364,22 +377,27 @@ function onDeviceReady()
 
     function initGarden() {
         startLocationService();
-        $('#prompt').html('Getting sounds....');
-        $.get(GetSoundsURL, {gardenID:1}, function(data){
-              if (data.success) {
-              gardenSounds = data.gardenSounds;
-              librarySounds = data.librarySounds;
-/*      	
+        /*      	
               mockupLocationService(lat,lon);
               setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.0006);},50000);
               setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.001);},70000);
               setTimeout(function() {console.log('#############################');mockupLocationService(lat,lon+0.002);},90000);
               //console.log('############################# done');
               setTimeout(function() {stopActiveSounds();}, 180000);
-  */            
-              $.mobile.changePage( "#mainPage", { transition: "slide"} );
+        */
+        getGardenSounds();
+        $.mobile.changePage( "#mainPage", { transition: "slide" } );    
+    }
+    
+    function getGardenSounds() {
+        $('#prompt').html('Getting sounds....');
+        $.get(GetSoundsURL, {gardenID:1}, function(data){
+              if (data.success) {
+                gardenSounds = data.gardenSounds;
+                librarySounds = data.librarySounds;        
+                startSoundGarden(position);
               } else {
-              alert("Failed to load sounds!");
+                console.log("!!!Failed to load sounds!!!");
               }
               },'json');
     }
@@ -389,7 +407,7 @@ function onDeviceReady()
     function startLocationService() {
         navigator.geolocation.watchPosition(handleLocation, function(error) {
                                                     console.log("code: " + error.code + "\n" + "message: " + error.message + "\n");
-                                                 }, { frequency: 3000, enableHighAccuracy: true });
+                                                }, { frequency: 3000, enableHighAccuracy: true });
     }
     
     function mockupLocationService(lat, lon) {
@@ -404,6 +422,7 @@ function onDeviceReady()
           lon = position.coords.longitude;
  
           console.log(lat+' '+lon);
+          gardenIsActive = false;
           startSoundGarden(position);
 
     }
@@ -414,62 +433,46 @@ function onDeviceReady()
      */
     
     function startSoundGarden(position) {
-    	
+        
         if(gardenSounds!=null && gardenSounds.length>0) {
-          
             for(var i =0;i<gardenSounds.length;i++) {
-        	  
                 var sound = gardenSounds[i];
                 sound.distance = calculateDistance(lat, lon, sound.soundLat, sound.soundLon,"K");
-                console.log('-------------------------');
-                console.log(gardenSounds[i].soundName +' distance '+ sound.distance);
-                
             }
-            
             gardenSounds.sort(sortfunction);
             for (var i=0; i<gardenSounds.length; i++) {
-            	console.log(gardenSounds[i].soundName + ": distance = " + gardenSounds[i].distance);
+            	console.log(gardenSounds[i].soundName + ", distance = " + gardenSounds[i].distance);
             }
-            
-            if (gardenSounds.length<maxSounds) { maxSounds = gardenSounds.length; }
             
             for (var i=0; i<gardenSounds.length; i++) {
         
                 var sound = gardenSounds[i];
                 var soundLable = 'instance'+sound.instanceID;
-                console.log(i+' '+sound.soundID+' '+sound.soundFileURI+' '+soundLable);
-              
+                
       		  	if(sound.distance<soundCutoffDistance) { // 
-       		  		console.log(soundLable+' active sounds within distance '+activeSounds[soundLable]+' new sound? '+(activeSounds[soundLable]==null));
+       		  		console.log("* " + soundLable+" is IN RANGE and is a new sound? "+(activeSounds[soundLable]==null));
       		  		if(activeSounds[soundLable]==null ) {  // sound is not loaded
-                        console.log('loading '+soundLable);
-                        PGLowLatencyAudio.preloadAudio(soundLable, 'http://'+sound.soundFileURI,3,
+                        console.log("-> LOADING " + sound.soundFileURI);
+                        PGLowLatencyAudio.preloadAudio(soundLable, "http://"+sound.soundFileURI,3,
 	        		  				activeSoundLoaded(soundLable,sound,sound.distance)
-	        			  	, function() {console.log('loading failed ');});
+	        			  	, function() {console.log("!!! LOADING FAILED ");});
       		  		}
       		  		else { // sound is already loaded 
       		  				// either the interval is set or sound is already playing... nothing to do?!
       		  				// except setting the volume 
                         var volume = (soundCutoffDistance-sound.distance)/soundCutoffDistance;
-      		    		console.log('new volume for already loaded file '+volume);
+      		    		console.log("-> Setting new volume for " + soundLable + " to " + volume);
       		    		PGLowLatencyAudio.changeVolume(soundLable,volume);
       		  		}
+                    
       		  	} else {  // sound is not active
-       		  		console.log(soundLable + " active sounds OUT OF RANGE and " + activeSounds[soundLable]  + " is in activeSounds? "+ (activeSounds[soundLable]==null));
+       		  		console.log(soundLable + " is OUT OF RANGE and is not in activeSounds? "+ (activeSounds[soundLable]==null));
       		  		if(activeSounds[soundLable]==null) {  // sound is not loaded
-       		  			console.log(soundLable+' far and not loaded or soundlable is null');
+       		  			console.log(soundLable+" is OUT OF RANGE and not loaded or soundlable is null");
       		  		} else { // sound is already loaded (needs to be cleared)
-      		  			console.log('clearing unloading '+soundLable);
+      		  			console.log("-> REMOVING "+soundLable+" FROM activeSounds");
       		  			clearInterval(activeSounds[soundLable].myInterval);
-      		  			//console.log('before label '+soundLable+' itself '+activeSounds.soundLable.loaded+' 2 '+activeSounds.length);
       		  			delete activeSounds[soundLable];
-      		  			//activeSounds.soundLable.loaded=false;
-      		  			//console.log('after label '+soundLable+' itself '+activeSounds.soundLable.loaded+' 2 '+activeSounds.length);
-      		    		console.log(" CHECKING after deletion size:"+activeSounds.length );
-      		    		for(var lable in activeSounds) {
-      		        		var mySound = activeSounds[lable];
-      		    			console.log(' key '+lable+' object '+mySound+' '+mySound.soundFileURI);
-      		    		}
       		  			PGLowLatencyAudio.unload(soundLable);
       		  		}
       		  	}
@@ -481,52 +484,36 @@ function onDeviceReady()
     	return function(status) {
 
     		var volume = (100-distance)/100;
-    		console.log(soundLable + ":volume: " + volume);
 
     		var count = 0;
-    		console.log(" CHECKING ACTIVE SOUNDS size:"+activeSounds.length );
-    		for(var lable in activeSounds) {
-        		var mySound = activeSounds[lable];
-    			console.log(count+' key '+lable+' object '+mySound+' '+mySound.soundFileURI);
-    		}
-    		console.log('soundLable '+ soundLable + 'new url '+sound.soundFileURI);
+            
 	  		activeSounds[soundLable] = sound;
-	  		//activeSounds.soundLable.loaded=true; 
 	  		var volume = (soundCutoffDistance-distance)/soundCutoffDistance;
-    		console.log('distance '+distance+' volume '+volume);
 
+            console.log("-> Added "+ soundLable + ": " + sound.soundName + " to activeSounds");
+            console.log("-> Setting volume for " + soundLable + " to " + volume);
+            
     		PGLowLatencyAudio.changeVolume(soundLable,volume);
 
-			console.log(soundLable+' with interval '+sound.soundInterval);
-    		//console.log();
-
+            console.log("-> Setting interval to " + sound.soundInterval);
+            
     		switch (sound.soundInterval) {
-    		case 0 :
-    			console.log('loop');
+    		case '0' :
+    			console.log("soundInterval: loop");
     			PGLowLatencyAudio.loop(soundLable);
     			break;
-    		case -1 :
-    			console.log('play once');
+    		case '-1' :
+    			console.log("soundInterval: play once");
     			PGLowLatencyAudio.play(soundLable);
     			break;
     		default :
-    			//PGLowLatencyAudio.play(soundLable);
-    			//console.log('interval '+sound.soundInterval);
     			var interval = !isNaN(sound.soundInterval) ? sound.soundInterval : 6000;
-    			console.log('corrected interval '+interval);
-				console.log('label '+soundLable+' in '+interval+' ms');
+                console.log("soundInterval: "+ interval);
     			sound.myInterval = setInterval(function() {
-    					//console.log('playing');
     					PGLowLatencyAudio.play(soundLable); 
     					},interval);
-    			//clearInterval(sound.myInterval);
-    			//PGLowLatencyAudio.play(soundLable);
     			break;
     		} 
-    		//console.log(status);
-			//console.log(soundLable);
-			//PGLowLatencyAudio.play(soundLable);
-			//console.log(element);
     	};
     };
     
@@ -544,14 +531,13 @@ function onDeviceReady()
     
     function stopActiveSounds() {
        	
-    	console.log('%%%%%%%%%%%%%%%%%% STOP ALL %%%%%%%%%%%%%%%%%%%%%%%%%%%');
+    	console.log("-> STOP ALL SOUNDS");
     	for(var lable in activeSounds) {
     		var sound = activeSounds[lable];
     		if(sound.myInterval) {
-    			console.log('clearing intervals '+ lable);
+    			console.log('clearing interval for '+ lable);
     			clearInterval(sound.myInterval);
     		}
-    		console.log('STOP');
     		delete activeSounds[lable];
    	    	PGLowLatencyAudio.stop('instance'+sound.instanceID);
    	    	PGLowLatencyAudio.unload('instance'+sound.instanceID);
