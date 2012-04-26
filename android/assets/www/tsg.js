@@ -21,13 +21,13 @@ function onDeviceReady()
     var GetMessagesURL = "http://www.tacticalsoundgarden.net/sandbox/client_getmessages_mobile.php";
     var SendMessageURL = "http://www.tacticalsoundgarden.net/sandbox/client_sendmessage_mobile.php";
     var GetSoundsURL = "http://www.tacticalsoundgarden.net/sandbox/client_getsounds_mobile.php";
-    var UpdateSoundsURL = "http://www.tacticalsoundgarden.net/sandbox/client_updatesounds_mobile.php";
-    
+     
     var gardenSounds = new Array();
     var librarySounds = new Array();
     var activeSounds = new Object();
-    var tempSounds = new Object();
     var messages = new Array();
+    
+    var previewSound = null;
     
     var maxSounds = 3;
 
@@ -112,21 +112,45 @@ function onDeviceReady()
               
                 if (data.messages.length > 0) {
               
-                    messages = data.messages;
-              
+                    var newMessages = data.messages;
+                    for (var i=0; i<newMessages.length; i++) {
+                        messages.push(newMessages[i]);
+                    }
                     // Get the content area element for the page.
               
                     var $content = $page.children( ":jqmData(role=content)" );
-              
-                    if (messages.length == 0) {
+                    
+                    var markup = "";
+                    
+                    /*
+                    if (newMessages.length == 0) {
                         $content.find("p").html("You have no new messages.");
-                    } else if (messages.length == 1) {
+                    } else if (newMessages.length == 1) {
                         $content.find("p").html("You have 1 new message.");
                     } else {
-                        $content.find("p").html("You have "+messages.length+" new messages.");
+                        $content.find("p").html("You have "+newMessages.length+" new messages.");
                     }
-              
+                    */
+                    
+                    if (newMessages.length == 0) {
+                        markup += "<p>You have no new messages.</p>";
+                    } else if (newMessages.length == 1) {
+                        markup += "<p>You have 1 new message.</p>";
+                    } else {
+                        markup += "<p>You have "+newMessages.length+" new messages.";
+                    }
+                    
+                    markup += "<ul data-role='listview'>" +
+                        "<li><a href=\"#menuPage?action=plant\">Plant a Sound</a></li>" +
+                        "<li><a href=\"#menuPage?action=prune\">Prune a Sound</a></li>" +
+                        "<li><a href=\"#menuPage?action=messages\">View Messages<span class=\"ui-li-count\">" + messages.length + "</span></a>";
+                    
+                    $content.html( markup );
+                    
                     $page.page();
+                    
+                    $content.find( ":jqmData(role=listview)" ).listview();
+                                    
                     options.dataUrl = url.href;
                     $.mobile.changePage( $page, options );
               
@@ -148,6 +172,7 @@ function onDeviceReady()
                 $content.find("p").html("Failed to load new messages.");
               
                 $page.page();
+                
                 options.dataUrl = url.href;
                 $.mobile.changePage( $page, options );
               }
@@ -170,14 +195,15 @@ function onDeviceReady()
         
         if (url.hash.search("plant") != -1) {
             for (var i=0; i < librarySounds.length; i++) {
-                markup += "<li><a href=\"#paramsPage?plant="+i+"\">" + librarySounds[i].soundName + "</a></li>";
+                var item = "item"+i;
+                markup += "<li><a id=\"" + item + "\" href=\"#\">" + librarySounds[i].soundName + "</a><a href=\"#paramsPage?plant="+i+"\"></a></li>";
             }
             markup += "</ul>";
             $header.find( "h1" ).html( "Plant a Sound" );
             
         } else if (url.hash.search("prune") != -1) {
             for (var lable in activeSounds) {
-                markup += "<li><a href=\"#paramsPage?prune="+lable+"\">" + activeSounds[lable].soundName + "</a></li>";
+                markup += "<li><a id=\"" + lable + "\" href=\"#\">" + activeSounds[lable].soundName + "</a><a href=\"#paramsPage?prune="+lable+"\"></a></li>";
             }
             markup += "</ul>";
             $header.find( "h1" ).html( "Prune a Sound" );
@@ -195,6 +221,22 @@ function onDeviceReady()
         $content.find( ":jqmData(role=listview)" ).listview();
         options.dataUrl = url.href;
         $.mobile.changePage( $page, options );
+        
+        if (url.hash.search("plant") != -1) {
+            for (var i=0; i<librarySounds.length; i++) {
+                var soundItem = "#item" + i;
+                var mySoundFileURI = librarySounds[i].soundFileURI;
+                console.log("Binding click to " + mySoundFileURI);
+                $( soundItem ).bind( "click" , { URI:mySoundFileURI }, playSound);
+            }
+        } else if (url.hash.search("prune") != -1) {
+            for (var lable in activeSounds) {
+                var soundItem = "#" + lable;
+                var mySoundFileURI = activeSounds[lable].soundFileURI;
+                console.log("Binding click for " + soundItem);
+                $( soundItem ).bind( "click" , { URI:mySoundFileURI }, playSound);
+            }
+        }
     }
 
     function createParamsPage(url, options) {
@@ -517,16 +559,24 @@ function onDeviceReady()
     	};
     };
     
-    function playSound(sound) {
-  		PGLowLatencyAudio.preloadAudio(sound.soundName, 'http://'+sound.soundFileURI,1
-	  	, function() {PGLowLatencyAudio.play(sound.soundName);}
+    function playSound(event) {
+        console.log("-> Playing " + event.data.URI);
+        if (previewSound != null) {
+            PGLowLatencyAudio.stop(previewSound);
+            PGLowLatencyAudio.unload(previewSound);
+        }
+        previewSound = "previewSound";
+        console.log("-> Set previewSound to " + previewSound);
+  		PGLowLatencyAudio.preloadAudio(previewSound, "http://"+event.data.URI,1
+	  	, function() {PGLowLatencyAudio.play(previewSound);}
 	  	, function() {console.log('loading failed ');});
     	
     }
     
     function stopSound(sound) {
-    	PGLowLatencyAudio.stop(sound.soundName);
-    	PGLowLatencyAudio.unload(sound.soundName);
+    	PGLowLatencyAudio.stop(previewSound);
+    	PGLowLatencyAudio.unload(previewSound);
+        delete previewSound;
     }
     
     function stopActiveSounds() {
