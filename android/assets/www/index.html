@@ -3,11 +3,11 @@
     <head>
         <title></title>
         <meta charset="utf-8">   
-		
 		<meta name="viewport" content="width=device-width, initial-scale=1"> 
-		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.1.0-rc.2/jquery.mobile-1.1.0-rc.2.min.css" />
+		<link rel="stylesheet" href="tsg.min.css" />
+		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.1.0/jquery.mobile.structure-1.1.0.min.css" />
 		<script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
-		<script src="http://code.jquery.com/mobile/1.1.0-rc.2/jquery.mobile-1.1.0-rc.2.min.js"></script>
+		<script src="http://code.jquery.com/mobile/1.1.0/jquery.mobile-1.1.0.min.js"></script>
 		<script type="text/javascript" charset="utf-8" src="cordova-1.5.0.js"></script>
 		<script type="text/javascript" charset="utf-8" src="PGLowLatencyAudio.js"></script>
         <script type="text/javascript" charset="utf-8" src="tsg.js"></script>
@@ -15,14 +15,14 @@
     
     <body onload="onBodyLoad()">
         
-        <div data-role="page" id="loginPage">
+        <div data-role="page" id="loginPage" data-theme="a">
             
             <div data-role="header">
                 <h1>Login</h1>
             </div><!-- /header -->
             
             <div data-role="content">	
-                <p id="prompt">Enter your username and password:</p>
+           
                 <form method="get" id="loginForm">
                     <div data-role="fieldcontain" class="ui-hide-label">
                         <label for="username">Username:</label>
@@ -36,12 +36,11 @@
             </div><!-- /content -->
             
             <div data-role="footer" data-position="fixed">
-
+				<p id="prompt">Enter your username and password</p>
             </div><!-- /footer -->
-            
         </div><!-- /page -->
         
-        <div data-role="page" id="mainPage">
+        <div data-role="page" id="mainPage" data-theme="a">
             
             <div data-role="header">
                 <h1>Main Menu</h1>
@@ -49,7 +48,6 @@
             </div><!-- /header -->
             
             <div data-role="content">
-                <p>You have no new messages.</p>
                 <ul data-role="listview">
                     <li id="plant"><a href="#menuPage?action=plant">Plant a Sound</a></li>
                     <li id="prune"><a href="#menuPage?action=prune">Prune a Sound</a></li>
@@ -59,14 +57,16 @@
             </div><!-- /content -->
             
             <div data-role="footer" data-position="fixed">
-               
+               <p>Select an action.</p>
             </div><!-- /footer -->
+            
         </div><!-- /page -->
         
-        <div data-role="page" id="menuPage" data-add-back-btn="true">
+        <div data-role="page" id="menuPage" data-theme="a">
             
             <div data-role="header">
                 <h1>Page Title</h1>
+                <a href="#" id="menuBackBtn" data-role="button" data-icon="arrow-l">Back</a>
             </div><!-- /header -->
             
             <div data-role="content">	
@@ -79,28 +79,32 @@
             </div><!-- /content -->
             
             <div data-role="footer" data-position="fixed">
-
+				<p>Text goes here</p>
             </div><!-- /footer -->
+            
         </div><!-- /page -->
         
-        <div data-role="page" id="paramsPage" data-add-back-btn="true">
+        <div data-role="page" id="paramsPage" data-theme="a">
             
             <div data-role="header">
                 <h1>Page Title</h1>
+                <a href="#" id="paramsBackBtn" data-role="button" data-icon="arrow-l">Back</a>
             </div><!-- /header -->
             
             <div data-role="content">
             </div><!-- /content -->
             
             <div data-role="footer" data-position="fixed">
+           		<p>Text goes here</p>
             </div><!-- /footer -->
-            
+            	
         </div><!-- /page -->
         
-        <div data-role="page" id="messagePage" data-add-back-btn="true">
+        <div data-role="page" id="messagePage" data-theme="a">
             
             <div data-role="header">
                 <h1>Page Title</h1>
+                <a href="#" id="msgsBackBtn" data-role="button" data-icon="arrow-l">Back</a>
             </div><!-- /header -->
             
             <div data-role="content">	
@@ -116,9 +120,10 @@
                 
             </div><!-- /content -->
             
-            <div data-role="footer" data-position="fixed">
-
+            <div data-role="footer" data-position="fixed" data-theme="a">
+				<p>Text goes here</p>
             </div><!-- /footer -->
+            
         </div><!-- /page -->
         
     </body>
